@@ -15,10 +15,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package    filter_questiondata
+ * @package    filter_moddata
  * @copyright  2022 Université de Lausanne http://www.unil.ch
  * @author     Nicolas Dunand <Nicolas.Dunand@unil.ch>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['pluginname'] = 'Question Data filter';
+$string['filtername'] = 'Database Activity filter';

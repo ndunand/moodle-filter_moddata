@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package    filter_questiondata
+ * @package    filter_moddata
  * @copyright  2022 Université de Lausanne http://www.unil.ch
  * @author     Nicolas Dunand <Nicolas.Dunand@unil.ch>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -23,12 +23,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2022120800;
+$plugin->version  = 2022120900;
 $plugin->requires = 2021051700; // Requires Moodle 3.11
-$plugin->component = 'filter_questiondata';
+$plugin->component = 'filter_moddata';
 $plugin->dependencies = [
         'mod_data' => 2021051700
 ];
 $plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '0.1 alpha';
+$plugin->release = '0.2 alpha';
 
