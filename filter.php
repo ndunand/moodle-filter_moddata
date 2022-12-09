@@ -27,7 +27,7 @@ class filter_moddata extends moodle_text_filter {
 
     function filter($text, array $options = array()) {
 
-        $text = preg_replace_callback('/{{([a-zA-Z0-9]+)\:([a-zA-Z0-9]+)\:([a-zA-Z0-9]+)}}/is', [
+        $text = preg_replace_callback('/{{([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)}}/is', [
                 $this,
                 'embed_data'
         ], $text);
@@ -133,7 +133,7 @@ class filter_moddata extends moodle_text_filter {
             // We should have only 1 record, something has gone wrong. Leave the text untouched.
             return $matches[0];
         }
-        $recordid = $recordids[0];
+        $recordid = array_pop($recordids);
 
         // Finally, let's get the field we wanted in the first place.
         $content = $DB->get_record('data_content', [

@@ -8,14 +8,14 @@ The first intended usage was to provide data sets for questions from Moodle's qu
 
 ### General usage ###
 
-1. Create a database activity in a course, and set it to be unavailable to students. It is not necessary to have it unavailable, but it prevents from tampering or unwanted access to the raw data. The database activity name has to be name of the form `[A-Za-z0-9]`, such as for instance "datasets".
+1. Create a database activity in a course, and set it to be unavailable to students. It is not necessary to have it unavailable, but it prevents from tampering or unwanted access to the raw data. The database activity name has to be name of the form `[A-Za-z0-9_]`, such as for instance "datasets".
 
 2. Create the following fields:
     - datasetname: short text
     - itemname: short text
     - fieldname: text area OR short text
 
-Any number of fields `fieldname` can be used, as long as the field name is of the form `[A-Za-z0-9]`.
+Any number of fields `fieldname` can be used, as long as the field name is of the form `[A-Za-z0-9_]`.
 
 3. Use the database activity import feature to import from a CSV file formated as below, using quotes where necessary:
 ```
