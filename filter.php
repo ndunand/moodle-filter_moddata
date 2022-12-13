@@ -27,7 +27,7 @@ class filter_moddata extends moodle_text_filter {
 
     function filter($text, array $options = array()) {
 
-        $text = preg_replace_callback('/{{([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)}}/is', [
+        $text = preg_replace_callback('/{{([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)(\:f)?}}/is', [
                 $this,
                 'embed_data'
         ], $text);
@@ -48,6 +48,7 @@ class filter_moddata extends moodle_text_filter {
         $moddata_name = $matches[1];
         $itemname = $matches[2];
         $itemfield = $matches[3];
+        $generate_fakedata = isset($matches[4]);
 
         // Use static acceleration for $dataset_recordids, as it is constant for the page,
         // because it's constant for the current user.
@@ -162,7 +163,59 @@ class filter_moddata extends moodle_text_filter {
                 'fieldid'  => $itemfield_fieldid
         ]);
 
+        // Are we to generate fale data?
+        if ($generate_fakedata) {
+            static $fakeno = 0;
+            $fakeno++;
+
+            return self::get_fakedata($content->content, $fakeno);
+        }
+
         return $content->content;
+    }
+
+    /**
+     * @param string $data
+     * @param        $fakeno
+     *
+     * @return string
+     */
+    function get_fakedata(string $data, $fakeno) {
+
+        // Get a number between 0 and 4, which will be constant for the whole day;
+        $four = (int)date('j') % 5;
+        // Get a number between 0 and 6, which will be constant for the whole day;
+        $six = (int)date('j') % 7;
+        // (They can't be both 0, this only happens first on day 35, which doesn't exist.)
+        // This prevents us from returning the $data unchanged.
+
+        //
+        $sign = -1;
+
+        $fake = 'fake from ' . $data . ' = ';
+        $charno = 0;
+        $lastchar = '';
+        foreach (str_split($data) as $char) {
+            if (!preg_match('/[0-9]/', $char)) {
+                // Don't change non-numerical parts of the string.
+                $fake .= $char;
+            }
+            else if ($char == '0' && $lastchar == '0') {
+                // If we have two zeroes in a row, leave them as they are: cut the last digit out of $fake,
+                // and add two zeroes.
+                $fake = substr($fake, 0, (strlen($fake) - 1)) . '00';
+            }
+            else {
+                // Do the magic.
+                // TODO find a better implementation, the following is rubbish.
+                $magic = ($charno % 2) ? ($fakeno + $four) % 3 + 1 : ($fakeno + $six) % 5 + 1;
+                $fake .= (int)$char + (pow($sign, $charno) * $magic);
+            }
+            $charno++;
+            $lastchar = $char;
+        }
+
+        return $fake;
     }
 
 }
