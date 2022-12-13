@@ -35,12 +35,28 @@ class filter_moddata extends moodle_text_filter {
         return $text;
     }
 
+    /**
+     * @param $matches
+     *
+     * @return string
+     * @throws coding_exception
+     * @throws dml_exception
+     */
     function embed_data($matches) {
         global $DB, $PAGE, $USER;
 
         $moddata_name = $matches[1];
         $itemname = $matches[2];
         $itemfield = $matches[3];
+
+        // Use static acceleration for $dataset_recordids, as it is constant for the page,
+        // because it's constant for the current user.
+        static $dataset_recordids = [];
+
+        // Use static acceleration for $item_recordids, but only if we're using the same item as last call.
+        // We check this by keeping track of the last item's name in $lastitemname.
+        static $lastitemname = '';
+        static $item_recordids = [];
 
         // Get the current course.
         $coursectx = $PAGE->context->get_course_context(true);
@@ -96,35 +112,40 @@ class filter_moddata extends moodle_text_filter {
         }
 
         // Find the relevant dataset's data records.
-        $datasetrecords =
-                $DB->get_records_select('data_content', 'fieldid = ? AND ' . $DB->sql_compare_text('content') . ' = ?',
-                        [
-                                $dataset_fieldid,
-                                $datasetname
-                        ]);
-        if (!$datasetrecords) {
-            // Relevant record not found, leave text untouched.
-            return $matches[0];
-        }
-        $dataset_recordids = [];
-        foreach ($datasetrecords as $datasetrecord) {
-            $dataset_recordids[] = $datasetrecord->recordid;
+        if (!count($dataset_recordids)) {
+            $datasetrecords = $DB->get_records_select('data_content',
+                    'fieldid = ? AND ' . $DB->sql_compare_text('content') . ' = ?', [
+                            $dataset_fieldid,
+                            $datasetname
+                    ], 'id ASC', 'recordid');
+            if (!$datasetrecords) {
+                // Relevant record not found, leave text untouched.
+                return $matches[0] . __LINE__;
+            }
+            $dataset_recordids = [];
+            foreach ($datasetrecords as $datasetrecord) {
+                $dataset_recordids[] = $datasetrecord->recordid;
+            }
         }
 
         // Get the relevant item's records.
-        $itemrecords =
-                $DB->get_records_select('data_content', 'fieldid = ? AND ' . $DB->sql_compare_text('content') . ' = ?',
-                        [
-                                $itemname_fieldid,
-                                $itemname
-                        ]);
-        if (!$itemrecords) {
-            // Relevant record not found, leave text untouched.
-            return $matches[0];
-        }
-        $item_recordids = [];
-        foreach ($itemrecords as $itemrecord) {
-            $item_recordids[] = $itemrecord->recordid;
+        if ($lastitemname !== $itemname) {
+            // Need to recompute, can't use static acceleration.
+            $itemrecords = $DB->get_records_select('data_content',
+                    'fieldid = ? AND ' . $DB->sql_compare_text('content') . ' = ?', [
+                            $itemname_fieldid,
+                            $itemname
+                    ], 'id ASC', 'recordid');
+            if (!$itemrecords) {
+                // Relevant record not found, leave text untouched.
+                return $matches[0] . __LINE__;
+            }
+            $item_recordids = [];
+            foreach ($itemrecords as $itemrecord) {
+                $item_recordids[] = $itemrecord->recordid;
+            }
+            // Mark $lastitemname to benefit from static acceleration next time.
+            $lastitemname = $itemname;
         }
 
         // Now, we can identify the actual record.
