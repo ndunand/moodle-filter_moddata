@@ -70,14 +70,15 @@ class filter_moddata extends moodle_text_filter {
         ]);
 
         if (!$database) {
-            // Database not found, leave text untouched.
-            return $matches[0];
+            // Database activity not found.
+            return get_string('databasenotfound', 'filter_moddata', $moddata_name);
         }
 
         // Get current user's groups.
         $usergroups = groups_get_user_groups($courseid, $USER->id);
 
         // Infer user's dataset name from user's groups.
+        // TODO check the case when the user is part of several groups named "dataset_..."
         $datasetname = '';
         foreach ($usergroups[0] as $groupid) {
             $group = $DB->get_record('groups', ['id' => $groupid]);
@@ -87,8 +88,8 @@ class filter_moddata extends moodle_text_filter {
             }
         }
         if (!$datasetname) {
-            // Dataset not found, leave text untouched.
-            return $matches[0];
+            // Dataset not found.
+            return get_string('datasetnotfound', 'filter_moddata', $datasetname);
         }
 
         // Find data fields.
@@ -107,9 +108,15 @@ class filter_moddata extends moodle_text_filter {
                 $itemfield_fieldid = $field->id;
             }
         }
-        if (!$dataset_fieldid && !$itemname_fieldid && !$itemfield_fieldid) {
-            // Relevant fields not found, leave text untouched.
-            return $matches[0];
+        if (!$dataset_fieldid || !$itemname_fieldid || !$itemfield_fieldid) {
+            // Relevant fields not found.
+            $a = (object)[
+                    'field1'    => 'datasetname',
+                    'field2'    => 'itemname',
+                    'field3'    => $itemfield,
+            ];
+
+            return get_string('requiredfieldsnotfound', 'filter_moddata', $a);
         }
 
         // Find the relevant dataset's data records.
@@ -120,8 +127,8 @@ class filter_moddata extends moodle_text_filter {
                             $datasetname
                     ], 'id ASC', 'recordid');
             if (!$datasetrecords) {
-                // Relevant record not found, leave text untouched.
-                return $matches[0] . __LINE__;
+                // Relevant record not found.
+                return get_string('datasetrecordsnotfound', 'filter_moddata', $datasetname);
             }
             $dataset_recordids = [];
             foreach ($datasetrecords as $datasetrecord) {
@@ -139,7 +146,13 @@ class filter_moddata extends moodle_text_filter {
                     ], 'id ASC', 'recordid');
             if (!$itemrecords) {
                 // Relevant record not found, leave text untouched.
-                return $matches[0] . __LINE__;
+                $a = (object)[
+                        'datasetname'  => $datasetname,
+                        'itemname'     => $itemname,
+                        'fieldname'    => $itemfield,
+                ];
+
+                return get_string('recordnotfound', 'filter_moddata', $a);
             }
             $item_recordids = [];
             foreach ($itemrecords as $itemrecord) {
@@ -152,8 +165,13 @@ class filter_moddata extends moodle_text_filter {
         // Now, we can identify the actual record.
         $recordids = array_intersect($dataset_recordids, $item_recordids);
         if (count($recordids) > 1) {
-            // We should have only 1 record, something has gone wrong. Leave the text untouched.
-            return $matches[0];
+            // We should have only 1 record, something has gone wrong.
+            $a = (object)[
+                    'datasetname'  => $datasetname,
+                    'itemname'     => $itemname,
+            ];
+
+            return get_string('toomanyrecordsfound', 'filer_moddata', $a);
         }
         $recordid = array_pop($recordids);
 

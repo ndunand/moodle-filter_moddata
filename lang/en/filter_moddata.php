@@ -22,3 +22,9 @@
  */
 
 $string['filtername'] = 'Database Activity filter';
+$string['databasenotfound'] = 'Could not find a database activity named `{$a}` in the current course.';
+$string['datasetnotfound'] = 'Could not find a dataset for the current user.';
+$string['requiredfieldsnotfound'] = 'Required fields not found. To display this item, the database activity should at least contain fields `{$a->field1}`, `{$a->field2}`, and `{$a->field3}`.';
+$string['datasetrecordsnotfound'] = 'Could not find datasets records for dataset `{$a}´ in the specified database activity.';
+$string['recordnotfound'] = 'Could not find a field `{$a->fieldname}` for item `{$a->itemname}` in the dataset `{$a->datasetname}`.';
+$string['toomanyrecordsfound'] = 'Too many records found for item `{$a->itemname}` in the dataset `{$a->datasetname}';
