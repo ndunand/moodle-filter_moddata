@@ -207,10 +207,7 @@ class filter_moddata extends moodle_text_filter {
         // (They can't be both 0, this only happens first on day 35, which doesn't exist.)
         // This prevents us from returning the $data unchanged.
 
-        //
-        $sign = -1;
-
-        $fake = 'fake from ' . $data . ' = ';
+        $fake = 'fake from ' . $data . ' = '; // TODO remove
         $charno = 0;
         $lastchar = '';
         foreach (str_split($data) as $char) {
@@ -219,15 +216,15 @@ class filter_moddata extends moodle_text_filter {
                 $fake .= $char;
             }
             else if ($char == '0' && $lastchar == '0') {
-                // If we have two zeroes in a row, leave them as they are: cut the last digit out of $fake,
-                // and add two zeroes.
+                // If we have two zeroes in a row, leave them as they are: cut off the last digit out of $fake,
+                // then and add two zeroes.
                 $fake = substr($fake, 0, (strlen($fake) - 1)) . '00';
             }
             else {
                 // Do the magic.
-                // TODO find a better implementation, the following is rubbish.
+                // TODO find a better implementation, the following is really very basic.
                 $magic = ($charno % 2) ? ($fakeno + $four) % 3 + 1 : ($fakeno + $six) % 5 + 1;
-                $fake .= (int)$char + (pow($sign, $charno) * $magic);
+                $fake .= (((int)$char + (pow(-1, $charno + $fakeno) * $magic)) + 1) % 10;
             }
             $charno++;
             $lastchar = $char;
