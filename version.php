@@ -29,6 +29,6 @@ $plugin->component = 'filter_moddata';
 $plugin->dependencies = [
         'mod_data' => 2021051700
 ];
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '0.2 alpha';
+$plugin->maturity = MATURITY_RC;
+$plugin->release = '1.0 RC';
 
