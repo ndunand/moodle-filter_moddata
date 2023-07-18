@@ -203,16 +203,19 @@ class filter_moddata extends moodle_text_filter {
      *
      * @return string
      */
-    function get_fakedata(string $data, $fakeno) {
+    private function get_fakedata(string $data, $fakeno) {
 
-        // Get a number between 0 and 4, which will be constant for the whole day;
-        $four = (int)date('j') % 5;
-        // Get a number between 0 and 6, which will be constant for the whole day;
-        $six = (int)date('j') % 7;
-        // (They can't be both 0, this only happens first on day 35, which doesn't exist.)
-        // This prevents us from returning the $data unchanged.
+        // Get a number between 0 and 4, which will be constant for the whole current calendar week;
+        $four = (int)date('w') % 5;
+        // Get a number between 0 and 6, which will be constant for the whole current calendar week;
+        $six = (int)date('w') % 7;
 
-        $fake = 'fake from ' . $data . ' = '; // TODO remove
+        if (!$four && !$six) {
+            // We don't want them to both be equal to zero, so we do this to avoid returning the $data unchanged.
+            $six++;
+        }
+
+        $fake = 'fake from ' . $data . ' &gt;&gt; '; // TODO remove
         $charno = 0;
         $lastchar = '';
         foreach (str_split($data) as $char) {
