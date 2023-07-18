@@ -181,6 +181,11 @@ class filter_moddata extends moodle_text_filter {
                 'fieldid'  => $itemfield_fieldid
         ]);
 
+        if (!$content) {
+            // Content record was not found.
+            return $matches[0];
+        }
+
         // Are we to generate fale data?
         if ($generate_fakedata) {
             static $fakeno = 0;
