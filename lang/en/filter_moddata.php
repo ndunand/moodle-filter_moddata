@@ -28,3 +28,6 @@ $string['requiredfieldsnotfound'] = 'Required fields not found. To display this 
 $string['datasetrecordsnotfound'] = 'Could not find datasets records for dataset `{$a}´ in the specified database activity.';
 $string['recordnotfound'] = 'Could not find a field `{$a->fieldname}` for item `{$a->itemname}` in the dataset `{$a->datasetname}`.';
 $string['toomanyrecordsfound'] = 'Too many records found for item `{$a->itemname}` in the dataset `{$a->datasetname}';
+$string['couldnotgenfakedata'] = 'error: could not fetch data';
+$string['naorzero'] = '(Not available or zero)';
+$string['debugenabled'] = 'Enable debugging';

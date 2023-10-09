@@ -54,7 +54,7 @@ datasetname;questionname;"questiontext";answer1;..;answerN
 ```
 For each dataset, there should be `n` questions. Supposing there are `m` datasets, there would be `n * m` records in the CSV file.
 
-4. Create groups within the course for user-to-dataset mapping; these groups should be named `questiondata_datasetname`. Then add students to a group, which links them to a specific data set.
+4. Create groups within the course for user-to-dataset mapping; these groups should be named `questiondata_datasetname`. Then add students to a group, thus linking them to a dataset.
 
 5. Create `n` quiz questions using the following syntax, which can be used in any HTML editor (e.g., question text, questions answers in a multiple choice questions, but _not_ in a short answer or calculated answer).
 `{{questiondata:questionname:database_field}}`

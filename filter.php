@@ -25,7 +25,12 @@ defined('MOODLE_INTERNAL') || die();
 
 class filter_moddata extends moodle_text_filter {
 
+    protected $debug;
+
     function filter($text, array $options = array()) {
+
+        $this->debug = $this->localconfig['debug'] == 'debug' ? true : false;
+
 
         $text = preg_replace_callback('/{{([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)(\:f)?}}/is', [
                 $this,
@@ -42,22 +47,34 @@ class filter_moddata extends moodle_text_filter {
      * @throws coding_exception
      * @throws dml_exception
      */
-    function embed_data($matches) {
+    function embed_data($matches, $forcegroupid = 0) {
         global $DB, $PAGE, $USER;
+
+        static $fakeno = 0;
 
         $moddata_name = $matches[1];
         $itemname = $matches[2];
         $itemfield = $matches[3];
         $generate_fakedata = isset($matches[4]);
 
+        static $qubaid = 0;
+
+        // We need $quba to make sure we're displaying the question itself, not the Preview window's technical
+        // information, so as not to miss the first fake, which has to be 'noaorzero' in some cases
+        global $quba;
+        if (isset($quba) && $qubaid != $quba->get_id()) {
+            $fakeno = 0;
+            $qubaid = $quba->get_id();
+        }
+
         // Use static acceleration for $dataset_recordids, as it is constant for the page,
         // because it's constant for the current user.
-        static $dataset_recordids = [];
+        $dataset_recordids = []; // TODO removed static here for debugging
 
         // Use static acceleration for $item_recordids, but only if we're using the same item as last call.
         // We check this by keeping track of the last item's name in $lastitemname.
-        static $lastitemname = '';
-        static $item_recordids = [];
+        $lastitemname = ''; // TODO removed static here for debugging
+        $item_recordids = []; // TODO removed static here for debugging
 
         // Get the current course.
         $coursectx = $PAGE->context->get_course_context(true);
@@ -80,6 +97,14 @@ class filter_moddata extends moodle_text_filter {
         // Infer user's dataset name from user's groups.
         // TODO check the case when the user is part of several groups named "dataset_..."
         $datasetname = '';
+
+        if ($forcegroupid) {
+            // Case where we want to force the user's group (see below).
+            $usergroups = [
+                    0 => [$forcegroupid]
+            ];
+        }
+
         foreach ($usergroups[0] as $groupid) {
             $group = $DB->get_record('groups', ['id' => $groupid]);
             if (strpos($group->name, 'dataset_') === 0) {
@@ -111,16 +136,17 @@ class filter_moddata extends moodle_text_filter {
         if (!$dataset_fieldid || !$itemname_fieldid || !$itemfield_fieldid) {
             // Relevant fields not found.
             $a = (object)[
-                    'field1'    => 'datasetname',
-                    'field2'    => 'itemname',
-                    'field3'    => $itemfield,
+                    'field1' => 'datasetname',
+                    'field2' => 'itemname',
+                    'field3' => $itemfield,
             ];
 
             return get_string('requiredfieldsnotfound', 'filter_moddata', $a);
         }
 
         // Find the relevant dataset's data records.
-        if (!count($dataset_recordids)) {
+        // Make sure to regenerate them if we force the $forcegroupid, as they're static variables.
+        if ($forcegroupid || !count($dataset_recordids)) {
             $datasetrecords = $DB->get_records_select('data_content',
                     'fieldid = ? AND ' . $DB->sql_compare_text('content') . ' = ?', [
                             $dataset_fieldid,
@@ -147,9 +173,9 @@ class filter_moddata extends moodle_text_filter {
             if (!$itemrecords) {
                 // Relevant record not found, leave text untouched.
                 $a = (object)[
-                        'datasetname'  => $datasetname,
-                        'itemname'     => $itemname,
-                        'fieldname'    => $itemfield,
+                        'datasetname' => $datasetname,
+                        'itemname'    => $itemname,
+                        'fieldname'   => $itemfield,
                 ];
 
                 return get_string('recordnotfound', 'filter_moddata', $a);
@@ -167,8 +193,8 @@ class filter_moddata extends moodle_text_filter {
         if (count($recordids) > 1) {
             // We should have only 1 record, something has gone wrong.
             $a = (object)[
-                    'datasetname'  => $datasetname,
-                    'itemname'     => $itemname,
+                    'datasetname' => $datasetname,
+                    'itemname'    => $itemname,
             ];
 
             return get_string('toomanyrecordsfound', 'filer_moddata', $a);
@@ -186,14 +212,71 @@ class filter_moddata extends moodle_text_filter {
             return $matches[0];
         }
 
-        // Are we to generate fale data?
+        // If we're pulling data fron another group, we don't want it to be 'N/A';
+        // so we need to force-generate another fake.
+        if ($forcegroupid && strpos($content->content, 'N/A') !== false) {
+            $generate_fakedata = true;
+        }
+        // Are we to generate fake data?
         if ($generate_fakedata) {
-            static $fakeno = 0;
-            $fakeno++;
 
+            if (!$forcegroupid) {
+                // Only increate $fakeno if we're actually generating a new fake, so dont increment if we're recursing
+                // while still trying to generate the same fake.
+                $fakeno++;
+            }
+
+            if ($fakeno === 1 && strpos($content->content, 'N/A') === false) {
+                // We want to generate fake data for a value that does NOT contain the sting 'N/A', so we want the first
+                // fake generated value to be 'N/A';
+                if ($this->debug) {
+                    return 'generating #' . $fakeno . ' fake for ' . $content->content . ' from (' . $datasetname . ') ' . get_string('naorzero',
+                                    'filter_moddata');
+                }
+
+                return get_string('naorzero', 'filter_moddata');
+            }
+
+            if (strpos($content->content, 'N/A') !== false) {
+                // We want to generate fake data for a value that is not available, so we need to use neighbouring values
+                // to generate the fake data.
+
+                // Let's find another random dataset from the same mod_data activity.
+                // TODO above can't be selected at rand() because we want the same result if we reload the page.
+                $oneorzero = (int)date('w') % 2;
+                $sort = $oneorzero ? 'ASC' : 'DESC';
+                $coursegroups = $DB->get_records('groups', ['courseid' => $courseid], 'id ' . $sort);
+
+                foreach ($coursegroups as $coursegroup) {
+                    if (strpos($coursegroup->name, 'dataset_') === 0) {
+                        if ($coursegroup->name == 'dataset_' . $datasetname) {
+                            // This is a dataset group, make sure it's not ours by accident.
+                            continue;
+                        }
+                        // Let's pretend we're from another group, but not if we've already tried.
+                        if ($forcegroupid) {
+                            return get_string('couldnotgenfakedata', 'filter_moddata') . $datasetname;
+                        }
+
+                        return $this->embed_data($matches, $coursegroup->id);
+                    }
+                }
+            }
+
+            if ($this->debug) {
+                return 'generating #' . $fakeno . ' fake for ' . $content->content . ' from (' . $datasetname . ') ' . self::get_fakedata($content->content,
+                                $fakeno);
+            }
             return self::get_fakedata($content->content, $fakeno);
         }
 
+        if (strpos($content->content, 'N/A') !== false) {
+            $content->content = get_string('naorzero', 'filter_moddata');
+        }
+
+        if ($this->debug) {
+            return 'From dataset ' . $datasetname . ' pulled ' . $itemname . '/' . $itemfield . ': ' . $content->content;
+        }
         return $content->content;
     }
 
@@ -215,8 +298,12 @@ class filter_moddata extends moodle_text_filter {
             $six++;
         }
 
-        $fake = 'fake from ' . $data . ' &gt;&gt; '; // TODO remove
+        $fake = '';
+        if ($this->debug) {
+            $fake = 'fake #' . $fakeno . ' from ' . $data . ' &gt;&gt; ';
+        }
         $charno = 0;
+        $digitno = 0;
         $lastchar = '';
         foreach (str_split($data) as $char) {
             if (!preg_match('/[0-9]/', $char)) {
@@ -232,12 +319,20 @@ class filter_moddata extends moodle_text_filter {
                 // Do the magic.
                 // TODO find a better implementation, the following is really very basic.
                 $magic = ($charno % 2) ? ($fakeno + $four) % 3 + 1 : ($fakeno + $six) % 5 + 1;
-                $fake .= (((int)$char + (pow(-1, $charno + $fakeno) * $magic)) + 1) % 10;
+                $fakechar = abs(((int)$char + (pow(-1, $charno + $fakeno) * $magic)) + 1) % 10;
+                if ($digitno === 0 && $fakechar === 0) {
+                    // If we're on the first digit, make sure $fakechar is not zero.
+                    $fakechar = $char;
+                }
+                $fake .= $fakechar;
+                // This should be the first significative digit.
+                $digitno++;
             }
             $charno++;
             $lastchar = $char;
         }
 
+        // TODO make sure we don't return unchanged $data by accident.
         return $fake;
     }
 

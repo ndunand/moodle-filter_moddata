@@ -23,12 +23,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2022120900;
+$plugin->version  = 2023100500;
 $plugin->requires = 2021051700; // Requires Moodle 3.11
 $plugin->component = 'filter_moddata';
 $plugin->dependencies = [
         'mod_data' => 2021051700
 ];
 $plugin->maturity = MATURITY_RC;
-$plugin->release = '1.0 RC';
+$plugin->release = '1.0.0';
 
