@@ -26,6 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 class filter_moddata extends moodle_text_filter {
 
     protected $debug;
+    private int $recursions = 0;
 
     function filter($text, array $options = array()) {
 
@@ -254,10 +255,11 @@ class filter_moddata extends moodle_text_filter {
                             continue;
                         }
                         // Let's pretend we're from another group, but not if we've already tried.
-                        if ($forcegroupid) {
+                        if ($this->recursions > count($coursegroups)/2) {
                             return get_string('couldnotgenfakedata', 'filter_moddata') . $datasetname;
                         }
 
+                        $this->recursions++;
                         return $this->embed_data($matches, $coursegroup->id);
                     }
                 }
