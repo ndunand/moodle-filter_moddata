@@ -108,7 +108,7 @@ class filter_moddata extends moodle_text_filter {
 
         foreach ($usergroups[0] as $groupid) {
             $group = $DB->get_record('groups', ['id' => $groupid]);
-            if (strpos($group->name, 'dataset_') === 0) {
+            if (str_starts_with($group->name, 'dataset_')) {
                 $datasetname = str_replace('dataset_', '', $group->name);
                 break;
             }
@@ -215,7 +215,7 @@ class filter_moddata extends moodle_text_filter {
 
         // If we're pulling data fron another group, we don't want it to be 'N/A';
         // so we need to force-generate another fake.
-        if ($forcegroupid && strpos($content->content, 'N/A') !== false) {
+        if ($forcegroupid && str_contains($content->content, 'N/A')) {
             $generate_fakedata = true;
         }
         // Are we to generate fake data?
@@ -227,7 +227,7 @@ class filter_moddata extends moodle_text_filter {
                 $fakeno++;
             }
 
-            if ($fakeno === 1 && strpos($content->content, 'N/A') === false) {
+            if ($fakeno === 1 && !str_contains($content->content, 'N/A')) {
                 // We want to generate fake data for a value that does NOT contain the sting 'N/A', so we want the first
                 // fake generated value to be 'N/A';
                 if ($this->debug) {
@@ -238,7 +238,7 @@ class filter_moddata extends moodle_text_filter {
                 return get_string('naorzero', 'filter_moddata');
             }
 
-            if (strpos($content->content, 'N/A') !== false) {
+            if (str_contains($content->content, 'N/A')) {
                 // We want to generate fake data for a value that is not available, so we need to use neighbouring values
                 // to generate the fake data.
 
@@ -249,7 +249,7 @@ class filter_moddata extends moodle_text_filter {
                 $coursegroups = $DB->get_records('groups', ['courseid' => $courseid], 'id ' . $sort);
 
                 foreach ($coursegroups as $coursegroup) {
-                    if (strpos($coursegroup->name, 'dataset_') === 0) {
+                    if (str_starts_with($coursegroup->name, 'dataset_')) {
                         if ($coursegroup->name == 'dataset_' . $datasetname) {
                             // This is a dataset group, make sure it's not ours by accident.
                             continue;
@@ -266,13 +266,13 @@ class filter_moddata extends moodle_text_filter {
             }
 
             if ($this->debug) {
-                return 'generating #' . $fakeno . ' fake for ' . $content->content . ' from (' . $datasetname . ') ' . self::get_fakedata($content->content,
-                                $fakeno);
+                return 'generating #' . $fakeno . ' fake for ' . $content->content . ' from (' . $datasetname . ') ' . $this->get_fakedata($content->content,
+                                                                                                                                           $fakeno);
             }
-            return self::get_fakedata($content->content, $fakeno);
+            return $this->get_fakedata($content->content, $fakeno);
         }
 
-        if (strpos($content->content, 'N/A') !== false) {
+        if (str_contains($content->content, 'N/A')) {
             $content->content = get_string('naorzero', 'filter_moddata');
         }
 
