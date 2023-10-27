@@ -30,7 +30,7 @@ class filter_moddata extends moodle_text_filter {
 
     function filter($text, array $options = array()) {
 
-        $this->debug = $this->localconfig['debug'] == 'debug' ? true : false;
+        $this->debug = $this->localconfig['debug'] === 'debug';
 
 
         $text = preg_replace_callback('/{{([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)(\:f)?}}/is', [
@@ -269,8 +269,6 @@ class filter_moddata extends moodle_text_filter {
                 return 'generating #' . $fakeno . ' fake for ' . $content->content . ' from (' . $datasetname . ') ' . $this->get_fakedata($content->content,
                                                                                                                                            $fakeno);
             }
-            var_dump('CONTENT = ' . $content->content);
-            var_dump('FAKE = ' . $this->get_fakedata($content->content, $fakeno));
             return $this->get_fakedata($content->content, $fakeno);
         }
 
