@@ -269,6 +269,8 @@ class filter_moddata extends moodle_text_filter {
                 return 'generating #' . $fakeno . ' fake for ' . $content->content . ' from (' . $datasetname . ') ' . $this->get_fakedata($content->content,
                                                                                                                                            $fakeno);
             }
+            var_dump('CONTENT = ' . $content->content);
+            var_dump('FAKE = ' . $this->get_fakedata($content->content, $fakeno));
             return $this->get_fakedata($content->content, $fakeno);
         }
 
@@ -288,14 +290,14 @@ class filter_moddata extends moodle_text_filter {
      *
      * @return string
      */
-    private function get_fakedata(string $data, $fakeno) {
+    private function get_fakedata(string $data, $fakeno, $redraw = false) {
 
         // Get a number between 0 and 4, which will be constant for the whole current calendar week;
         $four = (int)date('w') % 5;
         // Get a number between 0 and 6, which will be constant for the whole current calendar week;
         $six = (int)date('w') % 7;
 
-        if (!$four && !$six) {
+        if ((!$four && !$six) || $redraw) {
             // We don't want them to both be equal to zero, so we do this to avoid returning the $data unchanged.
             $six++;
         }
@@ -321,7 +323,7 @@ class filter_moddata extends moodle_text_filter {
                 // Do the magic.
                 // TODO find a better implementation, the following is really very basic.
                 $magic = ($charno % 2) ? ($fakeno + $four) % 3 + 1 : ($fakeno + $six) % 5 + 1;
-                $fakechar = abs(((int)$char + (pow(-1, $charno + $fakeno) * $magic)) + 1) % 10;
+                $fakechar = abs(((int)$char + ((-1 ** ($charno + $fakeno)) * $magic)) + 1) % 10;
                 if ($digitno === 0 && $fakechar === 0) {
                     // If we're on the first digit, make sure $fakechar is not zero.
                     $fakechar = $char;
@@ -334,8 +336,7 @@ class filter_moddata extends moodle_text_filter {
             $lastchar = $char;
         }
 
-        // TODO make sure we don't return unchanged $data by accident.
-        return $fake;
+        return $fake === $data ? $this->get_fakedata($data, $fakeno, true) : $fake;
     }
 
 }
