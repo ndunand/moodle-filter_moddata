@@ -247,6 +247,7 @@ class filter_moddata extends moodle_text_filter {
                 $oneorzero = (int)date('w') % 2;
                 $sort = $oneorzero ? 'ASC' : 'DESC';
                 $coursegroups = $DB->get_records('groups', ['courseid' => $courseid], 'id ' . $sort);
+                $coursegroups = array_slice($coursegroups, $this->recursions);
 
                 foreach ($coursegroups as $coursegroup) {
                     if (str_starts_with($coursegroup->name, 'dataset_')) {
@@ -264,6 +265,8 @@ class filter_moddata extends moodle_text_filter {
                     }
                 }
             }
+            // We found a group from which we can generate fake data, so we don't want to remove this group from $coursegroups for the next recursion
+            $this->recursions--;
 
             if ($this->debug) {
                 return 'generating #' . $fakeno . ' fake for ' . $content->content . ' from (' . $datasetname . ') ' . $this->get_fakedata($content->content,
