@@ -30,7 +30,7 @@ class filter_moddata extends moodle_text_filter {
 
     function filter($text, array $options = array()) {
 
-        $this->debug = true;
+        $this->debug = $this->localconfig['debug'] === 'debug';
 
 
         $text = preg_replace_callback('/{{([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)(\:f)?}}/is', [
@@ -298,8 +298,13 @@ class filter_moddata extends moodle_text_filter {
         // Get a number between 0 and 6, which will be constant for the whole current calendar week;
         $six = (int)date('w') % 7;
 
-        if ((!$four && !$six) || $redraw) {
+        if (!$four && !$six) {
             // We don't want them to both be equal to zero, so we do this to avoid returning the $data unchanged.
+            $six++;
+        }
+
+        //Making sure we don't get the same number twice in a row
+        if ($redraw) {
             $six++;
         }
 
