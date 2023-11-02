@@ -1,4 +1,4 @@
-# Database Activity filter for Moodle 3.11-4.x
+# Database Activity filter for Moodle 4.2-4.x
 
 A simple filter allowing the use of the `mod_data` plugin to allow usage of data sets in Moodle. These data sets are mapped to users using course groups.
 
