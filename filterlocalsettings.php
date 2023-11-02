@@ -32,7 +32,7 @@ class moddata_filter_local_settings_form extends filter_local_settings_form {
                            [],
                            ['nodebug', 'debug']);
 
-        $mform->addElement('advcheckbox', 'onemptyanswer',
+        $mform->addElement('advcheckbox', 'oneemptyanswer',
                            get_string('oneemptyanswer', 'filter_moddata'));
     }
 }
