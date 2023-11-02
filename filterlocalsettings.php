@@ -27,9 +27,12 @@ class moddata_filter_local_settings_form extends filter_local_settings_form {
     protected function definition_inner($mform) {
 
         $mform->addElement('advcheckbox', 'debug',
-                get_string('debugenabled', 'filter_moddata'),
-                '',
-                [],
-                ['nodebug', 'debug']);
+                           get_string('debugenabled', 'filter_moddata'),
+                           '',
+                           [],
+                           ['nodebug', 'debug']);
+
+        $mform->addElement('advcheckbox', 'onemptyanswer',
+                           get_string('oneemptyanswer', 'filter_moddata'));
     }
 }

@@ -31,3 +31,4 @@ $string['toomanyrecordsfound'] = 'Too many records found for item `{$a->itemname
 $string['couldnotgenfakedata'] = 'error: could not fetch data';
 $string['naorzero'] = '(Not available or zero)';
 $string['debugenabled'] = 'Enable debugging';
+$string['oneemptyanswer'] = 'Display one empty answer among possible choices';
