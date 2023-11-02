@@ -26,10 +26,11 @@ defined('MOODLE_INTERNAL') || die();
 class filter_moddata extends moodle_text_filter {
 
     protected $debug;
+    private int $recursions = 0;
 
     function filter($text, array $options = array()) {
 
-        $this->debug = $this->localconfig['debug'] == 'debug' ? true : false;
+        $this->debug = $this->localconfig['debug'] === 'debug';
 
 
         $text = preg_replace_callback('/{{([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)\:([A-Za-z0-9_]+)(\:f)?}}/is', [
@@ -107,7 +108,7 @@ class filter_moddata extends moodle_text_filter {
 
         foreach ($usergroups[0] as $groupid) {
             $group = $DB->get_record('groups', ['id' => $groupid]);
-            if (strpos($group->name, 'dataset_') === 0) {
+            if (str_starts_with($group->name, 'dataset_')) {
                 $datasetname = str_replace('dataset_', '', $group->name);
                 break;
             }
@@ -214,7 +215,7 @@ class filter_moddata extends moodle_text_filter {
 
         // If we're pulling data fron another group, we don't want it to be 'N/A';
         // so we need to force-generate another fake.
-        if ($forcegroupid && strpos($content->content, 'N/A') !== false) {
+        if ($forcegroupid && str_contains($content->content, 'N/A')) {
             $generate_fakedata = true;
         }
         // Are we to generate fake data?
@@ -226,7 +227,7 @@ class filter_moddata extends moodle_text_filter {
                 $fakeno++;
             }
 
-            if ($fakeno === 1 && strpos($content->content, 'N/A') === false) {
+            if (!$forcegroupid && ($fakeno === 1 && !str_contains($content->content, 'N/A'))) {
                 // We want to generate fake data for a value that does NOT contain the sting 'N/A', so we want the first
                 // fake generated value to be 'N/A';
                 if ($this->debug) {
@@ -237,7 +238,7 @@ class filter_moddata extends moodle_text_filter {
                 return get_string('naorzero', 'filter_moddata');
             }
 
-            if (strpos($content->content, 'N/A') !== false) {
+            if (str_contains($content->content, 'N/A')) {
                 // We want to generate fake data for a value that is not available, so we need to use neighbouring values
                 // to generate the fake data.
 
@@ -246,31 +247,35 @@ class filter_moddata extends moodle_text_filter {
                 $oneorzero = (int)date('w') % 2;
                 $sort = $oneorzero ? 'ASC' : 'DESC';
                 $coursegroups = $DB->get_records('groups', ['courseid' => $courseid], 'id ' . $sort);
+                $coursegroups = array_slice($coursegroups, $this->recursions);
 
                 foreach ($coursegroups as $coursegroup) {
-                    if (strpos($coursegroup->name, 'dataset_') === 0) {
+                    if (str_starts_with($coursegroup->name, 'dataset_')) {
                         if ($coursegroup->name == 'dataset_' . $datasetname) {
                             // This is a dataset group, make sure it's not ours by accident.
                             continue;
                         }
                         // Let's pretend we're from another group, but not if we've already tried.
-                        if ($forcegroupid) {
+                        if ($this->recursions > count($coursegroups)/2) {
                             return get_string('couldnotgenfakedata', 'filter_moddata') . $datasetname;
                         }
 
+                        $this->recursions++;
                         return $this->embed_data($matches, $coursegroup->id);
                     }
                 }
             }
+            // We found a group from which we can generate fake data, so we don't want to remove this group from $coursegroups for the next recursion
+            $this->recursions--;
 
             if ($this->debug) {
-                return 'generating #' . $fakeno . ' fake for ' . $content->content . ' from (' . $datasetname . ') ' . self::get_fakedata($content->content,
-                                $fakeno);
+                return 'generating #' . $fakeno . ' fake for ' . $content->content . ' from (' . $datasetname . ') ' . $this->get_fakedata($content->content,
+                                                                                                                                           $fakeno);
             }
-            return self::get_fakedata($content->content, $fakeno);
+            return $this->get_fakedata($content->content, $fakeno);
         }
 
-        if (strpos($content->content, 'N/A') !== false) {
+        if (str_contains($content->content, 'N/A')) {
             $content->content = get_string('naorzero', 'filter_moddata');
         }
 
@@ -286,7 +291,7 @@ class filter_moddata extends moodle_text_filter {
      *
      * @return string
      */
-    private function get_fakedata(string $data, $fakeno) {
+    private function get_fakedata(string $data, $fakeno, $redraw = false) {
 
         // Get a number between 0 and 4, which will be constant for the whole current calendar week;
         $four = (int)date('w') % 5;
@@ -295,6 +300,11 @@ class filter_moddata extends moodle_text_filter {
 
         if (!$four && !$six) {
             // We don't want them to both be equal to zero, so we do this to avoid returning the $data unchanged.
+            $six++;
+        }
+
+        //Making sure we don't get the same number twice in a row
+        if ($redraw) {
             $six++;
         }
 
@@ -319,7 +329,7 @@ class filter_moddata extends moodle_text_filter {
                 // Do the magic.
                 // TODO find a better implementation, the following is really very basic.
                 $magic = ($charno % 2) ? ($fakeno + $four) % 3 + 1 : ($fakeno + $six) % 5 + 1;
-                $fakechar = abs(((int)$char + (pow(-1, $charno + $fakeno) * $magic)) + 1) % 10;
+                $fakechar = abs(((int)$char + ((-1 ** ($charno + $fakeno)) * $magic)) + 1) % 10;
                 if ($digitno === 0 && $fakechar === 0) {
                     // If we're on the first digit, make sure $fakechar is not zero.
                     $fakechar = $char;
@@ -332,8 +342,7 @@ class filter_moddata extends moodle_text_filter {
             $lastchar = $char;
         }
 
-        // TODO make sure we don't return unchanged $data by accident.
-        return $fake;
+        return $fake === $data ? $this->get_fakedata($data, $fakeno, true) : $fake;
     }
 
 }
