@@ -227,7 +227,7 @@ class filter_moddata extends moodle_text_filter {
                 $fakeno++;
             }
 
-            if ($this->localconfig['onemptyanswer'] && !$forcegroupid && ($fakeno === 1 && !str_contains($content->content, 'N/A'))) {
+            if (!$forcegroupid && ($fakeno === 1 && !str_contains($content->content, 'N/A'))) {
                 // We want to generate fake data for a value that does NOT contain the sting 'N/A', so we want the first
                 // fake generated value to be 'N/A';
                 if ($this->debug) {
