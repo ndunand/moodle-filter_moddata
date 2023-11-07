@@ -273,6 +273,7 @@ class filter_moddata extends moodle_text_filter {
                 return 'generating #' . $fakeno . ' fake for ' . $content->content . ' from (' . $datasetname . ') ' . $this->get_fakedata($content->content,
                                                                                                                                            $fakeno);
             }
+            $this->fake_data_recursions = 0;
             return $this->get_fakedata($content->content, $fakeno);
         }
 
