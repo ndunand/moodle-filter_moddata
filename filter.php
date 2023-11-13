@@ -27,6 +27,7 @@ class filter_moddata extends moodle_text_filter {
 
     protected $debug;
     private int $recursions = 0;
+    private int $fake_data_recursions = 0;
 
     function filter($text, array $options = array()) {
 
@@ -272,6 +273,7 @@ class filter_moddata extends moodle_text_filter {
                 return 'generating #' . $fakeno . ' fake for ' . $content->content . ' from (' . $datasetname . ') ' . $this->get_fakedata($content->content,
                                                                                                                                            $fakeno);
             }
+            $this->fake_data_recursions = 0;
             return $this->get_fakedata($content->content, $fakeno);
         }
 
@@ -291,8 +293,8 @@ class filter_moddata extends moodle_text_filter {
      *
      * @return string
      */
-    private function get_fakedata(string $data, $fakeno, $redraw = false) {
-
+    private function get_fakedata(string $data, $fakeno) {
+        $this->fake_data_recursions++;
         // Get a number between 0 and 4, which will be constant for the whole current calendar week;
         $four = (int)date('w') % 5;
         // Get a number between 0 and 6, which will be constant for the whole current calendar week;
@@ -300,11 +302,6 @@ class filter_moddata extends moodle_text_filter {
 
         if (!$four && !$six) {
             // We don't want them to both be equal to zero, so we do this to avoid returning the $data unchanged.
-            $six++;
-        }
-
-        //Making sure we don't get the same number twice in a row
-        if ($redraw) {
             $six++;
         }
 
@@ -328,7 +325,7 @@ class filter_moddata extends moodle_text_filter {
             else {
                 // Do the magic.
                 // TODO find a better implementation, the following is really very basic.
-                $magic = ($charno % 2) ? ($fakeno + $four) % 3 + 1 : ($fakeno + $six) % 5 + 1;
+                $magic = (($charno % 2) ? ($fakeno + $four) % 3 + 1 : ($fakeno + $six) % 5 + 1) + $this->fake_data_recursions;
                 $fakechar = abs(((int)$char + ((-1 ** ($charno + $fakeno)) * $magic)) + 1) % 10;
                 if ($digitno === 0 && $fakechar === 0) {
                     // If we're on the first digit, make sure $fakechar is not zero.
@@ -342,8 +339,7 @@ class filter_moddata extends moodle_text_filter {
             $lastchar = $char;
         }
 
-        return $fake === $data ? $this->get_fakedata($data, $fakeno, true) : $fake;
+        return $fake === $data ? $this->get_fakedata($data, $fakeno) : $fake;
     }
 
 }
-
