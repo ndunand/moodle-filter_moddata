@@ -21,13 +21,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+namespace filter_moddata;
 
-class filter_moddata extends moodle_text_filter {
+class text_filter extends \core_filters\text_filter {
 
     protected $debug;
     private int $recursions = 0;
-    private int $fake_data_recursions = 0;
 
     function filter($text, array $options = array()) {
 
@@ -228,7 +227,7 @@ class filter_moddata extends moodle_text_filter {
                 $fakeno++;
             }
 
-            if ($this->localconfig['oneemptyanswer'] && !$forcegroupid && ($fakeno === 1 && !str_contains($content->content, 'N/A'))) {
+            if (!$forcegroupid && ($fakeno === 1 && !str_contains($content->content, 'N/A'))) {
                 // We want to generate fake data for a value that does NOT contain the sting 'N/A', so we want the first
                 // fake generated value to be 'N/A';
                 if ($this->debug) {
@@ -273,7 +272,6 @@ class filter_moddata extends moodle_text_filter {
                 return 'generating #' . $fakeno . ' fake for ' . $content->content . ' from (' . $datasetname . ') ' . $this->get_fakedata($content->content,
                                                                                                                                            $fakeno);
             }
-            $this->fake_data_recursions = 0;
             return $this->get_fakedata($content->content, $fakeno);
         }
 
@@ -293,16 +291,22 @@ class filter_moddata extends moodle_text_filter {
      *
      * @return string
      */
-    private function get_fakedata(string $data, $fakeno) {
-        $this->fake_data_recursions++;
-        // Get a number between 0 and 4, which will be constant for the whole current calendar week;
-        $four = (int)date('w') % 5;
+    private function get_fakedata(string $data, $fakeno, $redraw = 0) {
+
+        // Get a number between 0 and 9, which will be constant for the whole current calendar week;
+        $four = (int)date('w') % 10;
         // Get a number between 0 and 6, which will be constant for the whole current calendar week;
         $six = (int)date('w') % 7;
 
         if (!$four && !$six) {
             // We don't want them to both be equal to zero, so we do this to avoid returning the $data unchanged.
             $six++;
+        }
+
+        //Making sure we don't get the same number twice in a row
+        if ($redraw) {
+            $six = $six + $redraw;
+            $four = $four + $redraw;
         }
 
         $fake = '';
@@ -325,7 +329,7 @@ class filter_moddata extends moodle_text_filter {
             else {
                 // Do the magic.
                 // TODO find a better implementation, the following is really very basic.
-                $magic = (($charno % 2) ? ($fakeno + $four) % 3 + 1 : ($fakeno + $six) % 5 + 1) + $this->fake_data_recursions;
+                $magic = ($charno % 2) ? ($fakeno + $four) % 8 + 1 : ($fakeno + $six) % 5 + 1;
                 $fakechar = abs(((int)$char + ((-1 ** ($charno + $fakeno)) * $magic)) + 1) % 10;
                 if ($digitno === 0 && $fakechar === 0) {
                     // If we're on the first digit, make sure $fakechar is not zero.
@@ -339,7 +343,8 @@ class filter_moddata extends moodle_text_filter {
             $lastchar = $char;
         }
 
-        return $fake === $data ? $this->get_fakedata($data, $fakeno) : $fake;
+        return $fake === $data ? $this->get_fakedata($data, $fakeno, $redraw + 1) : $fake;
     }
 
 }
+
